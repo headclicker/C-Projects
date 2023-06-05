@@ -1,8 +1,13 @@
+/* 
+* Author: Ben Russell
+* Purpose: Create a rudimentary version of the popular video game C
+* Date: 4/6/23
+*/
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
 #include<stdbool.h>
-#include<conio.h>
+#include<conio.h> // third party conio but it should function the same
 #include<unistd.h>
 #include<errno.h>
 
@@ -19,7 +24,7 @@ void input();
 void takeTurn(char board[HEIGHT][WIDTH]);
 void setup(char board[HEIGHT][WIDTH]);
 void draw(char board[HEIGHT][WIDTH]);
-long msleep(const long ms); //not mine
+long msleep(const long ms); //not mine - used in place of windows exclusive sleep() function
 
 unsigned int snakeX, snakeY;
 unsigned int fruitX, fruitY;
@@ -145,7 +150,7 @@ void takeTurn(char board[HEIGHT][WIDTH]){
 	}
 }
 
-long msleep(const long ms) //Not mine
+long msleep(const long ms) //Not mine - used in place of windows exclusive sleep() function
 {
     struct timespec  req, rem;
 
