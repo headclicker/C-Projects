@@ -1,7 +1,7 @@
 /* 
 * Author: Ben Russell
-* Purpose: Create a rudimentary version of the popular video game C
-* Date: 4/6/23
+* Purpose: Re-create the popular video game as a command line app in C 
+* Date: 6/13/23 
 */
 #include<stdio.h>
 #include<stdlib.h>
@@ -13,140 +13,265 @@
 
 #define HEIGHT 20
 #define WIDTH 40
+
 #define UP 1
 #define RIGHT 2
 #define DOWN 3
 #define LEFT 4
 #define ENDGAME 0
 
-void placeFruit();
-void input();
-void takeTurn(char board[HEIGHT][WIDTH]);
-void setup(char board[HEIGHT][WIDTH]);
-void draw(char board[HEIGHT][WIDTH]);
+#define MAXSEGMENTS 684
+
+#define EMPTY 0
+#define HEAD 1
+#define BODY 2
+
+struct FruitInfo {
+    unsigned short fruitX;
+    unsigned short fruitY;
+};
+
+struct SnakeSegment{
+    bool isHead;
+    unsigned short segmentX;
+    unsigned short segmentY;
+};
+
+struct SnakeInfo{
+    char state;
+    short size;
+    struct SnakeSegment body[MAXSEGMENTS];
+};
+
+void addSegment(struct SnakeInfo *snake);
+void move(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score);
+void draw(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score);
+void setup(struct FruitInfo *fruit, struct SnakeInfo *snake);
+void placeFruit(struct FruitInfo *fruit, struct SnakeInfo *snake);
+void input(struct SnakeInfo *snake);
+
+bool handleCollision(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, bool *isGameRunning);
+
+int segmentType(int row, int col, struct SnakeInfo *snake);
+
 long msleep(const long ms); //not mine - used in place of windows exclusive sleep() function
 
-unsigned int snakeX, snakeY;
-unsigned int fruitX, fruitY;
-unsigned short snakeState;
-unsigned int score;
-
 int main(void){
-	// initialize random number generator	
-	srand(time(0));
+        srand(time(NULL));
 
-	char gameBoard[HEIGHT][WIDTH];
+        int score = 0;
+        bool isGameRunning = true;
 
-	setup(gameBoard);
-	while(snakeState){
-		input();
-		takeTurn(gameBoard);
-		draw(gameBoard);
-	}
-	printf("Final Score: %d\n", score);
+        struct SnakeInfo snake;
+        struct FruitInfo fruit;
+
+        setup(&fruit, &snake);
+        draw(&fruit, &snake, &score);
+
+        while(isGameRunning){
+            input(&snake);
+            
+            if(handleCollision(&fruit, &snake, &score, &isGameRunning)){
+                addSegment(&snake);
+            } else {
+                move(&fruit, &snake, &score);
+            }
+
+            draw(&fruit, &snake, &score);
+        }
 	return 0;
 }
 
-void setup(char board[HEIGHT][WIDTH]){
-	score = 0;
-	snakeState = RIGHT;
-	snakeX = (WIDTH / 2);
-	snakeY = (HEIGHT / 2);
-	placeFruit();
-	for(int row = 0; row < HEIGHT; row++){
-		printf("Final Score: %d\n", score);
-		for(int col = 0; col < WIDTH; col++){
-			if(row == 0 || row == HEIGHT - 1 || col == 0 || col == WIDTH - 1){
-				board[row][col] = '#';
-			} else if(row == snakeY && col == snakeX){
-				board[row][col] = '0';
-			} else if(row == fruitY && col == fruitX){
-				board[row][col] = '*';
-			} else {
-				board[row][col] = ' ';
-			}
-		}
-     	}
+bool handleCollision(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, bool *isGameRunning){
+    if(snake->body[0].segmentX < 1 || snake->body[0].segmentX > WIDTH - 2 
+    || snake->body[0].segmentY < 1 || snake->body[0].segmentY > HEIGHT - 2){
+        *isGameRunning = false;
+        return false;
+    }
+
+    for(int i = 1; i < snake->size; i++){
+        if(snake->body[0].segmentX == snake->body[i].segmentX && snake->body[0].segmentY == snake->body[i].segmentY){
+            *isGameRunning = false;
+            return false;
+        }
+    }
+
+    if(snake->body[0].segmentX == fruit->fruitX && snake->body[0].segmentY == fruit->fruitY){
+        (*score)++;
+        placeFruit(fruit, snake);
+        return true;
+    }
+    return false;
 }
 
-void placeFruit(){
-	fruitY = (rand() % (HEIGHT - 2)) + 1;
-	fruitX = (rand() % (WIDTH - 2)) + 1;
+void addSegment(struct SnakeInfo *snake){
+    struct SnakeSegment temp;
+
+    temp.segmentX = snake->body[0].segmentX;
+    temp.segmentY = snake->body[0].segmentY;
+
+    switch (snake->state){
+        case UP:
+            (snake->body[0].segmentY)--;
+            break;
+        case RIGHT:
+            (snake->body[0].segmentX)++;
+            break;
+        case DOWN:
+            (snake->body[0].segmentY)++;
+            break;
+        case LEFT:
+            (snake->body[0].segmentX)--;
+            break;
+        case ENDGAME:
+            break;
+    }
+    
+    for(int i = snake->size; i > 1; i--){
+        snake->body[i].isHead = false;
+        snake->body[i].segmentX = snake->body[i-1].segmentX;
+        snake->body[i].segmentY = snake->body[i-1].segmentY;
+    }
+    
+    snake->body[1].isHead = false;
+    snake->body[1].segmentX = temp.segmentX;
+    snake->body[1].segmentY = temp.segmentY;
+
+    (snake->size)++;
 }
 
-void input(){
+void move(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score){
+    if(snake->state == UP || snake->state == DOWN){
+		msleep(120);
+    } else {
+		msleep(60);
+    }
+
+    struct SnakeSegment temp1;  
+    struct SnakeSegment temp2;
+
+    temp1.segmentX = snake->body[0].segmentX;
+    temp1.segmentY = snake->body[0].segmentY;
+
+    switch (snake->state){
+        case UP:
+            (snake->body[0].segmentY)--;
+            break;
+        case RIGHT:
+            (snake->body[0].segmentX)++;
+            break;
+        case DOWN:
+            (snake->body[0].segmentY)++;
+            break;
+        case LEFT:
+            (snake->body[0].segmentX)--;
+            break;
+        case ENDGAME:
+            break;
+    }
+
+    for(int i = 1; i < snake->size; i++){
+        temp2.segmentX = snake->body[i].segmentX;
+        temp2.segmentY = snake->body[i].segmentY;
+
+        snake->body[i].segmentX = temp1.segmentX;
+        snake->body[i].segmentY = temp1.segmentY;
+
+        temp1.segmentX = temp2.segmentX;
+        temp1.segmentY = temp2.segmentY;
+    }
+
+}
+
+int segmentType(int row, int col, struct SnakeInfo *snake){
+    for(int i = 0; i < snake->size; i++){
+        if(snake->body[i].segmentY == row && snake->body[i].segmentX == col){
+            if(snake->body[i].isHead){
+                return HEAD;
+            } else {
+                return BODY;
+            }
+        }
+    }
+
+    return EMPTY;
+}
+
+void draw(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score){
+    system("clear");
+
+    for(int row = 0; row < HEIGHT; row++){
+        for(int col = 0; col < WIDTH; col++){
+            if(segmentType(row, col, snake) == HEAD){
+                putchar('0');
+            } else if(row == 0 || row == HEIGHT - 1 || col == 0 || col == WIDTH - 1){
+                putchar('#');
+            } else if(fruit->fruitY == row && fruit->fruitX == col) {
+                putchar('*');
+            } else if(segmentType(row, col, snake) == BODY){
+                putchar('o');
+            } else {
+                putchar(' ');
+            }
+        }
+        putchar('\n');
+    }
+
+    printf("Score: %i\n", *score);
+}
+
+void setup(struct FruitInfo *fruit, struct SnakeInfo *snake){
+    placeFruit(fruit, snake);
+
+    snake->state = RIGHT;
+    snake->size = 1;
+
+    snake->body[0].isHead = true;
+    snake->body[0].segmentX = WIDTH / 2;
+    snake->body[0].segmentY = HEIGHT / 2;
+
+}
+
+void placeFruit(struct FruitInfo *fruit, struct SnakeInfo *snake){
+        fruit->fruitY = (rand() % (HEIGHT - 2)) + 1;
+	fruit->fruitX = (rand() % (WIDTH - 2)) + 1; 
+
+        if(segmentType(fruit->fruitY, fruit->fruitX, snake)){
+            placeFruit(fruit, snake);
+        }
+}
+
+void input(struct SnakeInfo *snake){
 	if(kbhit()){
 		switch(getch()){
 			case 'w':
-				snakeState = UP;
+                                if(snake->state == DOWN){
+                                    break;
+                                }
+				snake->state = UP;
 				break;
 			case 'd': 
-				snakeState = RIGHT;
+                                if(snake->state == LEFT){
+                                    break;
+                                }
+				snake->state = RIGHT;
 				break;
 			case 's':
-				snakeState = DOWN;
+                                if(snake->state == UP){
+                                    break;
+                                }
+				snake->state = DOWN;
 				break;
 			case 'a':
-				snakeState = LEFT;
+                                if(snake->state == RIGHT){
+                                    break;
+                                }
+				snake->state = LEFT;
 				break;
 			case 'x':
-				snakeState = ENDGAME;
+				snake->state = ENDGAME;
 				break;
 		}
-	}
-}
-
-void draw(char board[HEIGHT][WIDTH]){
-	system("clear");
-	for(int row = 0; row < HEIGHT; row++){
-		for(int col = 0; col < WIDTH; col++){
-			putchar(board[row][col]);
-		}
-		putchar('\n');
-	}
-	printf("Score: %d\n", score);
-	// printf("\nScore: %d\nFruitX: %d, FruitY: %d\nSnakeX: %d, SnakeY: %d\n", score, fruitX, fruitY, snakeX, snakeY);
-}
-
-void takeTurn(char board[HEIGHT][WIDTH]){
-	if(snakeState == UP || snakeState == DOWN){
-		msleep(100);
-	} else {
-		msleep(50);
-	}
-	switch(snakeState){
-		case UP:
-			board[snakeY][snakeX] = ' ';
-			snakeY--;
-			board[snakeY][snakeX] = '0';
-			break;
-		case RIGHT:
-			board[snakeY][snakeX] = ' ';
-			snakeX++;
-			board[snakeY][snakeX] = '0';
-			break;
-		case DOWN:
-			board[snakeY][snakeX] = ' ';
-			snakeY++;
-			board[snakeY][snakeX] = '0';
-			break;
-		case LEFT: 
-			board[snakeY][snakeX] = ' ';
-			snakeX--;
-			board[snakeY][snakeX] = '0';
-			break;
-	}
-
-	
-
-	if(snakeX == fruitX && snakeY == fruitY){
-		score++;
-		board[fruitY][fruitX] = ' ';
-		placeFruit();
-		board[fruitY][fruitX] = '*';
-
-	} else if (snakeX < 1 || snakeX > WIDTH - 2 || snakeY < 1 || snakeY > HEIGHT - 2){
-		snakeState = ENDGAME;
 	}
 }
 
@@ -170,3 +295,4 @@ long msleep(const long ms) //Not mine - used in place of windows exclusive sleep
     } else
         return 0L;
 }
+
