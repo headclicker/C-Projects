@@ -40,7 +40,7 @@ void setup(struct FruitInfo *fruit, struct SnakeInfo *snake);
 void draw(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, int *logSize);
 void clearSnake(WINDOW *win, struct SnakeInfo *snake, int *logSize);
 void moveSnake(WINDOW *win,struct FruitInfo *fruit, struct SnakeInfo *snake, int *score);
-void input(WINDOW *win, struct SnakeInfo *snake);
+void input(WINDOW *win, struct SnakeInfo *snake, int c);
 void addSegment(struct SnakeInfo *snake);
 void placeFruit(struct FruitInfo *fruit, struct SnakeInfo *snake);
 
@@ -55,18 +55,27 @@ int main(void){
         srand(time(NULL));
 
         int score = 0;
-        bool isGameRunning = true;
         int logSize = 0;
+        int c;
+        short turn = 1;
+        bool isGameRunning = true;
 
         initscr();
         noecho();
         curs_set(0);
+        start_color();
         keypad(stdscr, true);
+        init_color(COLOR_GREEN, 0, 1000, 0); 
+        init_color(COLOR_RED, 1000, 0, 0);
+        init_pair(1, COLOR_GREEN, COLOR_BLACK);
+        init_pair(2, COLOR_RED, COLOR_BLACK);
+
+
         
         struct SnakeInfo snake;
         struct FruitInfo fruit;
 
-        WINDOW *win = newwin(HEIGHT, WIDTH, (LINES / 2) - (HEIGHT / 2), (COLS / 2) - (WIDTH / 2));
+        WINDOW *win = newwin(HEIGHT, WIDTH, LINES - HEIGHT - 3, (COLS / 2) - (WIDTH / 2));
         keypad(win, true);
         wtimeout(win, 120);
 
@@ -78,20 +87,29 @@ int main(void){
         draw(win, &fruit, &snake, &score, &logSize);
         
         while(isGameRunning){
-            input(win, &snake);
+            turn *= -1;
 
+            if(snake.state == UP || snake.state == DOWN){
+                c = waitFullTurn(win, 140);
+            } else {
+                c = waitFullTurn(win, 70);
+            }
+            
+            input(win, &snake, c);
+            
             /*clearSnake(win, &snake, &logSize); */
             
             if(handleCollision(&fruit, &snake, &score, &isGameRunning)){
                 logSize++;
                 addSegment(&snake);
-            } else {
+            } else { 
+                
                 mvwaddch(win, snake.body[logSize].segmentY, snake.body[logSize].segmentX, ' ');
                 moveSnake(win, &fruit, &snake, &score);
             }
 
             draw(win, &fruit, &snake, &score, &logSize);
-
+            
         }
         
         getch();
@@ -112,19 +130,26 @@ void setup(struct FruitInfo *fruit, struct SnakeInfo *snake){
 }
 
 void draw(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, int *logSize){
-
+    // init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    // init_pair(2, COLOR_RED, COLOR_BLACK);
     for(int row = 0; row < HEIGHT; row++){
         for(int col = 0; col < WIDTH; col++){
             if(segmentType(row, col, snake) == HEAD){
+                wattron(win, COLOR_PAIR(1));
                 mvwaddch(win, row, col, '0');
+                wattroff(win, COLOR_PAIR(1));
             }  else if(fruit->fruitY == row && fruit->fruitX == col) {
-                mvwaddch(win, row, col, '*');
-            } else if(*(logSize) > 1 && row == snake->body[1].segmentY && col == snake->body[1].segmentX){
+                wattron(win, COLOR_PAIR(2));   
+                mvwaddch(win, row, col, ACS_DIAMOND);
+                wattroff(win, COLOR_PAIR(2));
+            } else if(*(logSize) > 0 && row == snake->body[1].segmentY && col == snake->body[1].segmentX){
+                wattron(win, COLOR_PAIR(1));
                 mvwaddch(win, row, col, 'o');
+                wattroff(win, COLOR_PAIR(1));
             }            
         }
     }
-    mvprintw(1, 1, "Score: %i\n", *score);
+    mvprintw(LINES - HEIGHT - 4, (COLS / 2) - (WIDTH / 2) + 1, "Score: %i\n", *score);
     wrefresh(win);
     refresh();
 }
@@ -161,11 +186,11 @@ void draw(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *sc
 }*/
 
 void moveSnake(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *score){
-    if(snake->state == UP || snake->state == DOWN){
+    /* if(snake->state == UP || snake->state == DOWN){
 		wtimeout(win, 160);
     } else {
 		wtimeout(win, 80);
-    }
+    } */
 
     struct SnakeSegment temp1;  
     struct SnakeSegment temp2;
@@ -203,9 +228,8 @@ void moveSnake(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, in
 
 }
 
-void input(WINDOW *win, struct SnakeInfo *snake){
-    int c;
-    switch((c = wgetch(win))){
+void input(WINDOW *win, struct SnakeInfo *snake, int c){
+    switch(c){
 	case KEY_UP:
             if(snake->state == DOWN){
                 break;
@@ -331,6 +355,7 @@ int waitFullTurn(WINDOW *win, float waitTime){
         gettimeofday(&currentTime, NULL);
         timeTwo = (float) (currentTime.tv_usec) / 1000;
         int diff = floatAbs(timeOne - timeTwo); 
+
         if((waitTime - diff) < 5){
             return c;
         } else {
