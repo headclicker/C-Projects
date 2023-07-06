@@ -47,6 +47,9 @@ void placeFruit(struct FruitInfo *fruit, struct SnakeInfo *snake);
 bool handleCollision(struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, bool *isGameRunning);
 
 int segmentType(int row, int col, struct SnakeInfo *snake);
+int waitFullTurn(WINDOW *win, float time);
+
+float floatAbs(float num);
 
 int main(void){
         srand(time(NULL));
@@ -312,4 +315,33 @@ int segmentType(int row, int col, struct SnakeInfo *snake){
     }
 
     return EMPTY;
+}
+
+int waitFullTurn(WINDOW *win, float waitTime){
+    wtimeout(win, waitTime); 
+
+    int c;
+    float timeOne, timeTwo;
+    struct timeval currentTime;
+
+    gettimeofday(&currentTime, NULL);
+    timeOne = (float) (currentTime.tv_usec) / 1000;
+
+    if((c = wgetch(win))){
+        gettimeofday(&currentTime, NULL);
+        timeTwo = (float) (currentTime.tv_usec) / 1000;
+        int diff = floatAbs(timeOne - timeTwo); 
+        if((waitTime - diff) < 5){
+            return c;
+        } else {
+            waitFullTurn(win, (waitTime - diff));
+        }
+
+    }
+
+    return c; 
+}
+
+float floatAbs(float num){
+    return (num < 0) ? (num * -1) : (num);
 }
