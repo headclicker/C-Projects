@@ -12,8 +12,6 @@ void setup(struct FruitInfo *fruit, struct SnakeInfo *snake){
 }
 
 void draw(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, int *logSize){
-    // init_pair(1, COLOR_GREEN, COLOR_BLACK);
-    // init_pair(2, COLOR_RED, COLOR_BLACK);
     for(int row = 0; row < HEIGHT; row++){
         for(int col = 0; col < WIDTH; col++){
             if(segmentType(row, col, snake) == HEAD){
@@ -36,43 +34,8 @@ void draw(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *sc
     refresh();
 }
 
-/*void draw(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *score, int *logSize){
-
-    for(int row = 0; row < HEIGHT; row++){
-        for(int col = 0; col < WIDTH; col++){
-            if(segmentType(row, col, snake) == HEAD){
-                mvwaddch(win, row, col, '0');
-            }  else if(fruit->fruitY == row && fruit->fruitX == col) {
-                mvwaddch(win, row, col, '*');
-            } else if(segmentType(row, col, snake) == BODY){
-                mvwaddch(win, row, col, 'o');
-            }            
-        }
-    }
-    mvprintw(1, 1, "Score: %i\n", *score);
-    wrefresh(win);
-    refresh();
-}*/
-
-/* void clearSnake(WINDOW *win, struct SnakeInfo *snake, int *logSize){
-	for(int row = 0; row < HEIGHT; row++){
-            for(int col = 0; col < WIDTH; col++){
-		if(segmentType(row, col, snake) == HEAD || segmentType(row, col, snake) == BODY){
-		    mvwaddch(win, row, col, ' ');
-		}
-	    }
-	}
-
-        wrefresh(win);
-        refresh();
-}*/
 
 void moveSnake(WINDOW *win, struct FruitInfo *fruit, struct SnakeInfo *snake, int *score){
-    /* if(snake->state == UP || snake->state == DOWN){
-		wtimeout(win, 160);
-    } else {
-		wtimeout(win, 80);
-    } */
 
     struct SnakeSegment temp1;  
     struct SnakeSegment temp2;
